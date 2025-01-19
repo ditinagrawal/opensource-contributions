@@ -19,6 +19,7 @@ export const GitHubPR = () => {
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [openPRsCount, setOpenPRsCount] = useState(0);
     const abortControllerRef = useRef(null);
     const perPage = 10;
 
@@ -39,6 +40,17 @@ export const GitHubPR = () => {
             timestamp: Date.now(),
         });
     }, []);
+
+    const fetchOpenPRsCount = async () => {
+        const response = await fetch(
+            `https://api.github.com/search/issues?q=is:pr+author:${username}+is:open`
+        );
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.total_count;
+    };
 
     useEffect(() => {
         const fetchPRs = async () => {
@@ -110,6 +122,10 @@ export const GitHubPR = () => {
 
                 setPRs(detailedPRs);
                 setTotalCount(data.total_count);
+
+                // Fetch open PRs count
+                const openPRsCount = await fetchOpenPRsCount();
+                setOpenPRsCount(openPRsCount);
             } catch (err) {
                 if (err.name === "AbortError") {
                     // Ignore abort errors
@@ -163,13 +179,21 @@ export const GitHubPR = () => {
                             <Github className="h-6 w-6 font-extrabold" />
                             My Contributions
                         </CardTitle>
-                        <Badge
-                            variant="secondary"
-                            className="text-sm px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
-                        >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            All Merged
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                            <Badge
+                                variant="secondary"
+                                className="text-sm px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+                            >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                All Merged
+                            </Badge>
+                            <Badge
+                                variant="outline"
+                                className="text-sm px-3 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                            >
+                                Open PRs: {openPRsCount}
+                            </Badge>
+                        </div>
                     </div>
                 </CardHeader>
 
