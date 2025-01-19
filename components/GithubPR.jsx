@@ -28,7 +28,21 @@ export const GitHubPR = () => {
                     `https://api.github.com/search/issues?q=is:pr+author:${username}+is:merged&sort=updated&order=desc&page=${page}&per_page=${perPage}`
                 );
                 const data = await response.json();
-                setPRs(data.items);
+
+                // Then fetch detailed PR data for each PR
+                const detailedPRs = await Promise.all(
+                    data.items.map(async (pr) => {
+                        const prResponse = await fetch(pr.pull_request.url);
+                        const prData = await prResponse.json();
+                        return {
+                            ...pr,
+                            additions: prData.additions,
+                            deletions: prData.deletions,
+                        };
+                    })
+                );
+
+                setPRs(detailedPRs);
                 setTotalCount(data.total_count);
             } catch (err) {
                 setError("Failed to fetch Pull Requests");

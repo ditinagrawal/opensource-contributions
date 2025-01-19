@@ -6,6 +6,7 @@ import {
     GitBranch,
     MessageSquare,
     User,
+    Code,
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -71,6 +72,13 @@ const PRCard = ({ pr, index }) => (
                     <MessageSquare className="h-4 w-4" />
                     {pr.comments}
                 </span>
+                {pr.additions !== undefined && pr.deletions !== undefined && (
+                    <span className="flex items-center gap-1.5">
+                        <Code className="h-4 w-4" />
+                        <span className="text-green-500">+{pr.additions}</span>
+                        <span className="text-red-500">-{pr.deletions}</span>
+                    </span>
+                )}
             </div>
             <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6 ring-2 ring-background">
