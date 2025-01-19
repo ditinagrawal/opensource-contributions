@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle, Github } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const cache = new Map();
 
 export const GitHubPR = () => {
     const [prs, setPRs] = useState([]);
@@ -16,43 +19,117 @@ export const GitHubPR = () => {
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const abortControllerRef = useRef(null);
     const perPage = 10;
 
     const username = "ditinagrawal";
 
+    const getCachedData = useCallback((key) => {
+        const cached = cache.get(key);
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+            return cached.data;
+        }
+        cache.delete(key);
+        return null;
+    }, []);
+
+    const setCachedData = useCallback((key, data) => {
+        cache.set(key, {
+            data,
+            timestamp: Date.now(),
+        });
+    }, []);
+
     useEffect(() => {
         const fetchPRs = async () => {
+            // Cancel any pending requests
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            abortControllerRef.current = new AbortController();
+
             setLoading(true);
+            const cacheKey = `prs-${username}-${page}`;
+
             try {
+                // Check cache first
+                const cachedData = getCachedData(cacheKey);
+                if (cachedData) {
+                    setPRs(cachedData.prs);
+                    setTotalCount(cachedData.totalCount);
+                    setLoading(false);
+                    return;
+                }
+
+                // Fetch with abort controller
                 const response = await fetch(
-                    `https://api.github.com/search/issues?q=is:pr+author:${username}+is:merged&sort=updated&order=desc&page=${page}&per_page=${perPage}`
+                    `https://api.github.com/search/issues?q=is:pr+author:${username}+is:merged&sort=updated&order=desc&page=${page}&per_page=${perPage}`,
+                    { signal: abortControllerRef.current.signal }
                 );
+
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        throw new Error(
+                            "Rate limit exceeded. Please try again later."
+                        );
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
 
-                // Then fetch detailed PR data for each PR
+                // Batch fetch PR details to reduce number of requests
                 const detailedPRs = await Promise.all(
                     data.items.map(async (pr) => {
-                        const prResponse = await fetch(pr.pull_request.url);
-                        const prData = await prResponse.json();
-                        return {
-                            ...pr,
-                            additions: prData.additions,
-                            deletions: prData.deletions,
-                        };
+                        try {
+                            const prResponse = await fetch(
+                                pr.pull_request.url,
+                                {
+                                    signal: abortControllerRef.current.signal,
+                                }
+                            );
+                            if (!prResponse.ok) return { ...pr };
+                            const prData = await prResponse.json();
+                            return {
+                                ...pr,
+                                additions: prData.additions,
+                                deletions: prData.deletions,
+                            };
+                        } catch (err) {
+                            // Return PR without details if fetch fails
+                            return { ...pr };
+                        }
                     })
                 );
+
+                // Cache the results
+                setCachedData(cacheKey, {
+                    prs: detailedPRs,
+                    totalCount: data.total_count,
+                });
 
                 setPRs(detailedPRs);
                 setTotalCount(data.total_count);
             } catch (err) {
-                setError("Failed to fetch Pull Requests");
+                if (err.name === "AbortError") {
+                    // Ignore abort errors
+                    return;
+                }
+                setError(err.message || "Failed to fetch Pull Requests");
             } finally {
                 setTimeout(() => setLoading(false), 200);
             }
         };
 
         fetchPRs();
-    }, [page]);
+
+        // Cleanup function
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [page, username, getCachedData, setCachedData]);
 
     const totalPages = Math.ceil(totalCount / perPage);
 
