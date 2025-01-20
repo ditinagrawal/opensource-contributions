@@ -6,9 +6,10 @@ import PRCard from "@/components/PRCard";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle, Github } from "lucide-react";
+import { ArrowUpRight, CheckCircle, Github, Star } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ModeSwitcher } from "./ModeSwitcher";
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -181,6 +182,22 @@ export const GitHubPR = () => {
                             My Contributions
                         </CardTitle>
                         <div className="flex items-center gap-2">
+                            <Link
+                                href={
+                                    "https://github.com/ditinagrawal/opensource-contributions"
+                                }
+                                target="_blank"
+                                className="max-sm:hidden mr-4"
+                            >
+                                <Badge
+                                    variant="secondary"
+                                    className="text-sm px-3 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20 max-sm:hidden cursor-pointer"
+                                >
+                                    <Star className="h-4 w-4 mr-1 fill-current text-yellow-600" />
+                                    Star on Github
+                                    <ArrowUpRight className="h-4 w-4 ms-1" />
+                                </Badge>
+                            </Link>
                             <Badge
                                 variant="secondary"
                                 className="text-sm px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 max-sm:hidden"
