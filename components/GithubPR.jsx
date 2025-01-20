@@ -183,14 +183,14 @@ export const GitHubPR = () => {
                         <div className="flex items-center gap-2">
                             <Badge
                                 variant="secondary"
-                                className="text-sm px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+                                className="text-sm px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 max-sm:hidden"
                             >
                                 <CheckCircle className="h-4 w-4 mr-1" />
                                 All Merged
                             </Badge>
                             <Badge
                                 variant="outline"
-                                className="text-sm px-3 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                                className="text-sm px-3 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 max-sm:hidden"
                             >
                                 Open PRs: {openPRsCount}
                             </Badge>
