@@ -43,6 +43,34 @@ export const GitHubPR = () => {
         });
     }, []);
 
+    const fetchLanguages = async (pr) => {
+        const parts = pr.repository_url.split("/repos/")[1].split("/");
+        const repoOwner = parts[0];
+        const repoName = parts[1];
+
+        const url = `https://api.github.com/repos/${repoOwner}/${repoName}/languages`;
+
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    Accept: "application/vnd.github.v3+json",
+                    Authorization: process.env.GITHUB_KEY,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return Object.keys(data); // Return the languages
+        } catch (error) {
+            console.error("Error fetching languages:", error);
+            return [];
+        }
+    };
+
     const fetchOpenPRsCount = async () => {
         const response = await fetch(
             `https://api.github.com/search/issues?q=is:pr+author:${username}+is:open`
@@ -92,27 +120,14 @@ export const GitHubPR = () => {
 
                 const data = await response.json();
 
-                // Batch fetch PR details to reduce number of requests
+                // Fetch languages for each PR
                 const detailedPRs = await Promise.all(
                     data.items.map(async (pr) => {
-                        try {
-                            const prResponse = await fetch(
-                                pr.pull_request.url,
-                                {
-                                    signal: abortControllerRef.current.signal,
-                                }
-                            );
-                            if (!prResponse.ok) return { ...pr };
-                            const prData = await prResponse.json();
-                            return {
-                                ...pr,
-                                additions: prData.additions,
-                                deletions: prData.deletions,
-                            };
-                        } catch (err) {
-                            // Return PR without details if fetch fails
-                            return { ...pr };
-                        }
+                        const languages = await fetchLanguages(pr);
+                        return {
+                            ...pr,
+                            languages, // Add languages to the PR object
+                        };
                     })
                 );
 
@@ -191,7 +206,7 @@ export const GitHubPR = () => {
                             >
                                 <Badge
                                     variant="secondary"
-                                    className="text-sm px-3 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20 max-sm:hidden cursor-pointer"
+                                    className="text-sm px-3 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20 max-sm:hidden cursor-pointer tracking-wide"
                                 >
                                     <Star className="h-4 w-4 mr-1 fill-current text-yellow-600" />
                                     Star on Github
@@ -200,14 +215,14 @@ export const GitHubPR = () => {
                             </Link>
                             <Badge
                                 variant="secondary"
-                                className="text-sm px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 max-sm:hidden"
+                                className="text-sm px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 max-sm:hidden tracking-wide"
                             >
                                 <CheckCircle className="h-4 w-4 mr-1" />
                                 All Merged
                             </Badge>
                             <Badge
                                 variant="outline"
-                                className="text-sm px-3 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 max-sm:hidden"
+                                className="text-sm px-3 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 max-sm:hidden tracking-wide"
                             >
                                 Open PRs: {openPRsCount}
                             </Badge>
@@ -235,6 +250,7 @@ export const GitHubPR = () => {
                                             key={pr.id}
                                             pr={pr}
                                             index={index}
+                                            languages={pr.languages}
                                         />
                                     ))}
                                 </motion.div>
