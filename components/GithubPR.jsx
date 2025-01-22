@@ -15,7 +15,7 @@ import { ModeSwitcher } from "./ModeSwitcher";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const cache = new Map();
 
-export const GitHubPR = () => {
+export const GitHubPR = ({ name: username }) => {
     const [prs, setPRs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -24,8 +24,6 @@ export const GitHubPR = () => {
     const [openPRsCount, setOpenPRsCount] = useState(0);
     const abortControllerRef = useRef(null);
     const perPage = 10;
-
-    const username = "ditinagrawal";
 
     const getCachedData = useCallback((key) => {
         const cached = cache.get(key);
