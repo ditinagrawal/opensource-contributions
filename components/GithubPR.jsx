@@ -123,11 +123,26 @@ export const GitHubPR = () => {
                 // Fetch languages for each PR
                 const detailedPRs = await Promise.all(
                     data.items.map(async (pr) => {
-                        const languages = await fetchLanguages(pr);
-                        return {
-                            ...pr,
-                            languages, // Add languages to the PR object
-                        };
+                        try {
+                            const prResponse = await fetch(
+                                pr.pull_request.url,
+                                {
+                                    signal: abortControllerRef.current.signal,
+                                }
+                            );
+                            if (!prResponse.ok) return { ...pr };
+                            const prData = await prResponse.json();
+                            const languages = await fetchLanguages(pr);
+                            return {
+                                ...pr,
+                                languages, // Add languages to the PR object
+                                additions: prData.additions,
+                                deletions: prData.deletions,
+                            };
+                        } catch (err) {
+                            // Return PR without details if fetch fails
+                            return { ...pr };
+                        }
                     })
                 );
 

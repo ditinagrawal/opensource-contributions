@@ -20,7 +20,7 @@ const PRCard = ({ pr, index, languages }) => (
             duration: 0.3,
             delay: index * 0.05,
         }}
-        className="group relative bg-card/50 backdrop-blur-sm border border-neutral-200/50 dark:border-neutral-800/50 rounded-xl p-6 hover:bg-accent/50 hover:border-primary/50 transition-all duration-300 sm:h-[260px]"
+        className="group relative bg-card/50 backdrop-blur-sm border border-neutral-200/50 dark:border-neutral-800/50 rounded-xl p-6 hover:bg-accent/50 hover:border-primary/50 transition-all duration-300"
     >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <div className="relative space-y-4">
