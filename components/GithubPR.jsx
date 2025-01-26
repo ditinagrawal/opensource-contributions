@@ -15,6 +15,27 @@ import { ModeSwitcher } from "./ModeSwitcher";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const cache = new Map();
 
+const fetchStarCount = async (repoOwner, repoName) => {
+    const url = `https://api.github.com/repos/${repoOwner}/${repoName}`;
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                Accept: "application/vnd.github.v3+json",
+                Authorization: process.env.GITHUB_KEY,
+            },
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.stargazers_count; // Return the star count
+    } catch (error) {
+        console.error("Error fetching star count:", error);
+        return 0; // Return 0 if there's an error
+    }
+};
+
 export const GitHubPR = ({ name: username }) => {
     const [prs, setPRs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -22,6 +43,7 @@ export const GitHubPR = ({ name: username }) => {
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const [openPRsCount, setOpenPRsCount] = useState(0);
+    const [starCount, setStarCount] = useState(0);
     const abortControllerRef = useRef(null);
     const perPage = 10;
 
@@ -156,6 +178,16 @@ export const GitHubPR = ({ name: username }) => {
                 // Fetch open PRs count
                 const openPRsCount = await fetchOpenPRsCount();
                 setOpenPRsCount(openPRsCount);
+
+                // Fetch star count
+                const parts =
+                    "https://github.com/ditinagrawal/opensource-contributions".split(
+                        "/"
+                    ); // Replace with your repo URL
+                const repoOwner = parts[parts.length - 2];
+                const repoName = parts[parts.length - 1];
+                const stars = await fetchStarCount(repoOwner, repoName);
+                setStarCount(stars);
             } catch (err) {
                 if (err.name === "AbortError") {
                     // Ignore abort errors
@@ -222,7 +254,7 @@ export const GitHubPR = ({ name: username }) => {
                                     className="text-sm px-3 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20 max-sm:hidden cursor-pointer tracking-wide"
                                 >
                                     <Star className="h-4 w-4 mr-1 fill-current text-yellow-600" />
-                                    Star on Github
+                                    {starCount ?? ""} Stars on Github
                                     <ArrowUpRight className="h-4 w-4 ms-1" />
                                 </Badge>
                             </Link>

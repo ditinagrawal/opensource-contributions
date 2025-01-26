@@ -85,7 +85,7 @@ const PRCard = ({ pr, index, languages }) => (
                     <Badge
                         key={language}
                         variant="outline"
-                        className="tracking-wide"
+                        className="tracking-wide text-muted-foreground"
                     >
                         {language}
                     </Badge>

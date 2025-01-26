@@ -71,7 +71,10 @@ npm run dev
 
 ## Environment Variables
 
-No environment variables are required as the application uses the public GitHub API. However, be aware of GitHub's rate limiting for unauthenticated requests.
+```env
+<!-- For authorization, need a auth token -->
+GITHUB_KEY=""
+```
 
 ## Customization
 
