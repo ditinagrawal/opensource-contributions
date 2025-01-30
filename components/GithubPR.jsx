@@ -40,11 +40,10 @@ const fetchContributors = async (pr) => {
     const parts = pr.repository_url.split("/repos/")[1].split("/");
     const repoOwner = parts[0];
     const repoName = parts[1];
-    const prNumber = pr.number;
 
     try {
-        // Fetch PR commits
-        const commitsUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/pulls/${prNumber}/commits`;
+        // Fetch all commits for the repository
+        const commitsUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits`;
         const commitsResponse = await fetch(commitsUrl, {
             headers: {
                 Accept: "application/vnd.github.v3+json",
@@ -80,13 +79,39 @@ const fetchContributors = async (pr) => {
             contributor.commits += 1;
         });
 
-        // Calculate percentages
-        totalLines = pr.additions + pr.deletions;
+        // Fetch all contributors for the repository
+        const contributorsUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contributors`;
+        const contributorsResponse = await fetch(contributorsUrl, {
+            headers: {
+                Accept: "application/vnd.github.v3+json",
+                Authorization: process.env.GITHUB_KEY,
+            },
+        });
+
+        if (!contributorsResponse.ok) {
+            throw new Error(
+                `HTTP error! status: ${contributorsResponse.status}`
+            );
+        }
+
+        const allContributors = await contributorsResponse.json();
+        console.log("All Contributors - ", allContributors);
+
+        // Calculate percentages based on total contributors
         const contributors = Array.from(contributorsMap.values()).map(
-            (contributor) => ({
-                ...contributor,
-                percentage: (contributor.commits / commits.length) * 100,
-            })
+            (contributor) => {
+                const totalCommits = allContributors.reduce(
+                    (acc, curr) => acc + curr.contributions,
+                    0
+                );
+                return {
+                    ...contributor,
+                    percentage:
+                        totalCommits > 0
+                            ? (contributor.commits / totalCommits) * 100
+                            : 0,
+                };
+            }
         );
 
         return contributors.sort((a, b) => b.percentage - a.percentage);
