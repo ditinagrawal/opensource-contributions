@@ -36,6 +36,66 @@ const fetchStarCount = async (repoOwner, repoName) => {
     }
 };
 
+const fetchContributors = async (pr) => {
+    const parts = pr.repository_url.split("/repos/")[1].split("/");
+    const repoOwner = parts[0];
+    const repoName = parts[1];
+    const prNumber = pr.number;
+
+    try {
+        // Fetch PR commits
+        const commitsUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/pulls/${prNumber}/commits`;
+        const commitsResponse = await fetch(commitsUrl, {
+            headers: {
+                Accept: "application/vnd.github.v3+json",
+                Authorization: process.env.GITHUB_KEY,
+            },
+        });
+
+        if (!commitsResponse.ok) {
+            throw new Error(`HTTP error! status: ${commitsResponse.status}`);
+        }
+
+        const commits = await commitsResponse.json();
+
+        // Count commits per author and calculate total lines changed
+        const contributorsMap = new Map();
+        let totalLines = 0;
+
+        commits.forEach((commit) => {
+            const author = commit.author || commit.commit.author;
+            const login = author.login || author.name;
+            const avatar_url = author.avatar_url || "";
+
+            if (!contributorsMap.has(login)) {
+                contributorsMap.set(login, {
+                    login,
+                    avatar_url,
+                    commits: 0,
+                    lines: 0,
+                });
+            }
+
+            const contributor = contributorsMap.get(login);
+            contributor.commits += 1;
+        });
+
+        // Calculate percentages
+        totalLines = pr.additions + pr.deletions;
+        const contributors = Array.from(contributorsMap.values()).map(
+            (contributor) => ({
+                ...contributor,
+                percentage: (contributor.commits / commits.length) * 100,
+            })
+        );
+
+        return contributors.sort((a, b) => b.percentage - a.percentage);
+    } catch (error) {
+        console.error("Error fetching contributors:", error);
+        return [];
+    }
+};
+
 export const GitHubPR = ({ name: username }) => {
     const [prs, setPRs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -139,7 +199,6 @@ export const GitHubPR = ({ name: username }) => {
                 }
 
                 const data = await response.json();
-
                 // Fetch languages for each PR
                 const detailedPRs = await Promise.all(
                     data.items.map(async (pr) => {
@@ -166,13 +225,25 @@ export const GitHubPR = ({ name: username }) => {
                     })
                 );
 
+                // Fetch contributors for each PR
+                const prsWithContributors = await Promise.all(
+                    detailedPRs.map(async (pr) => {
+                        try {
+                            const contributors = await fetchContributors(pr);
+                            return { ...pr, contributors };
+                        } catch (err) {
+                            return { ...pr, contributors: [] };
+                        }
+                    })
+                );
+
                 // Cache the results
                 setCachedData(cacheKey, {
-                    prs: detailedPRs,
+                    prs: prsWithContributors,
                     totalCount: data.total_count,
                 });
 
-                setPRs(detailedPRs);
+                setPRs(prsWithContributors);
                 setTotalCount(data.total_count);
 
                 // Fetch open PRs count
@@ -296,6 +367,7 @@ export const GitHubPR = ({ name: username }) => {
                                             pr={pr}
                                             index={index}
                                             languages={pr.languages}
+                                            contributors={pr.contributors}
                                         />
                                     ))}
                                 </motion.div>
@@ -303,7 +375,6 @@ export const GitHubPR = ({ name: username }) => {
                         </AnimatePresence>
                     </div>
                 </ScrollArea>
-
                 <div className="flex-shrink-0">
                     <PaginationControls
                         page={page}
