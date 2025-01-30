@@ -16,6 +16,7 @@ import {
     Users,
 } from "lucide-react";
 import { motion } from "motion/react";
+import Link from "next/link";
 import { useState } from "react";
 
 const ContributorsPopup = ({ isOpen, onClose, contributors }) => (
@@ -29,7 +30,9 @@ const ContributorsPopup = ({ isOpen, onClose, contributors }) => (
             </DialogHeader>
             <div className="space-y-4">
                 {contributors.map((contributor) => (
-                    <div
+                    <Link
+                        href={`https://github.com/${contributor.login}`}
+                        target="_blank"
                         key={contributor.login}
                         className="flex items-center justify-between gap-4 p-2 rounded-lg bg-muted/50"
                     >
@@ -47,15 +50,18 @@ const ContributorsPopup = ({ isOpen, onClose, contributors }) => (
                                 <p className="font-medium">
                                     {contributor.login}
                                 </p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-muted-foreground font-thin">
                                     {contributor.commits} commits
                                 </p>
                             </div>
                         </div>
-                        <Badge variant="secondary" className="ml-auto">
+                        <Badge
+                            variant="secondary"
+                            className="ml-auto font-thin"
+                        >
                             {contributor.percentage.toFixed(1)}%
                         </Badge>
-                    </div>
+                    </Link>
                 ))}
             </div>
         </DialogContent>
@@ -76,7 +82,6 @@ const PRCard = ({ pr, index, languages, contributors }) => {
                     duration: 0.3,
                     delay: index * 0.05,
                 }}
-                onClick={() => setIsPopupOpen(true)}
                 className="group relative bg-card/50 backdrop-blur-sm border border-neutral-200/50 dark:border-neutral-800/50 rounded-xl p-6 hover:bg-accent/50 hover:border-primary/50 transition-all duration-300 sm:h-[280px] cursor-pointer"
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent dark:from-primary/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -142,7 +147,10 @@ const PRCard = ({ pr, index, languages, contributors }) => {
                                     </span>
                                 </span>
                             )}
-                        <span className="flex items-center gap-1.5">
+                        <span
+                            className="flex items-center gap-1.5 underline cursor-pointer text-primary/70 hover:text-primary"
+                            onClick={() => setIsPopupOpen(true)}
+                        >
                             <Users className="h-4 w-4" />
                             {contributors?.length || 0} contributors
                         </span>
