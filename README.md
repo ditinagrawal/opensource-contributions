@@ -2,7 +2,8 @@
 
 A beautiful, responsive Next.js application to showcase your open-source contributions by displaying your merged pull requests.
 
-![Website Preview](/public/main.png)
+![Dark](/public/main-dark.png)
+![Light](/public/main-light.png)
 
 ## Features
 
