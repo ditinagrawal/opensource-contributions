@@ -42,43 +42,6 @@ const fetchContributors = async (pr) => {
     const repoName = parts[1];
 
     try {
-        // Fetch all commits for the repository
-        const commitsUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits`;
-        const commitsResponse = await fetch(commitsUrl, {
-            headers: {
-                Accept: "application/vnd.github.v3+json",
-                Authorization: process.env.GITHUB_KEY,
-            },
-        });
-
-        if (!commitsResponse.ok) {
-            throw new Error(`HTTP error! status: ${commitsResponse.status}`);
-        }
-
-        const commits = await commitsResponse.json();
-
-        // Count commits per author and calculate total lines changed
-        const contributorsMap = new Map();
-        let totalLines = 0;
-
-        commits.forEach((commit) => {
-            const author = commit.author || commit.commit.author;
-            const login = author.login || author.name;
-            const avatar_url = author.avatar_url || "";
-
-            if (!contributorsMap.has(login)) {
-                contributorsMap.set(login, {
-                    login,
-                    avatar_url,
-                    commits: 0,
-                    lines: 0,
-                });
-            }
-
-            const contributor = contributorsMap.get(login);
-            contributor.commits += 1;
-        });
-
         // Fetch all contributors for the repository
         const contributorsUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contributors`;
         const contributorsResponse = await fetch(contributorsUrl, {
@@ -97,21 +60,36 @@ const fetchContributors = async (pr) => {
         const allContributors = await contributorsResponse.json();
         console.log("All Contributors - ", allContributors);
 
-        // Calculate percentages based on total contributors
-        const contributors = Array.from(contributorsMap.values()).map(
-            (contributor) => {
-                const totalCommits = allContributors.reduce(
-                    (acc, curr) => acc + curr.contributions,
-                    0
-                );
-                return {
-                    ...contributor,
-                    percentage:
-                        totalCommits > 0
-                            ? (contributor.commits / totalCommits) * 100
-                            : 0,
-                };
+        // Count commits per author and calculate total lines changed
+        const contributorsMap = new Map();
+
+        allContributors.forEach((contributor) => {
+            const login = contributor.login;
+            const avatar_url = contributor.avatar_url || "";
+
+            if (!contributorsMap.has(login)) {
+                contributorsMap.set(login, {
+                    login,
+                    avatar_url,
+                    commits: contributor.contributions, // Use contributions from the API
+                });
             }
+        });
+
+        // Calculate percentages based on total contributors
+        const totalCommits = Array.from(contributorsMap.values()).reduce(
+            (acc, curr) => acc + curr.commits,
+            0
+        );
+
+        const contributors = Array.from(contributorsMap.values()).map(
+            (contributor) => ({
+                ...contributor,
+                percentage:
+                    totalCommits > 0
+                        ? (contributor.commits / totalCommits) * 100
+                        : 0,
+            })
         );
 
         return contributors.sort((a, b) => b.percentage - a.percentage);
